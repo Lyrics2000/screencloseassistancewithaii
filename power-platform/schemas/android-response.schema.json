@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "SCA analysis response",
+  "type": "object",
+  "properties": {
+    "requestId": { "type": "string" },
+    "action": { "type": "string", "enum": ["CLOSE", "WAIT", "NO_ACTION", "UNSAFE", "ERROR"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "target": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "label": { "type": "string" },
+            "centerX": { "type": "integer", "minimum": 0 },
+            "centerY": { "type": "integer", "minimum": 0 },
+            "normalizedX": { "type": "number", "minimum": 0, "maximum": 1 },
+            "normalizedY": { "type": "number", "minimum": 0, "maximum": 1 },
+            "left": { "type": "integer", "minimum": 0 },
+            "top": { "type": "integer", "minimum": 0 },
+            "right": { "type": "integer", "minimum": 0 },
+            "bottom": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["label", "centerX", "centerY", "normalizedX", "normalizedY", "left", "top", "right", "bottom"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "waitSeconds": { "type": "integer", "minimum": 0, "maximum": 60 },
+    "reason": { "type": "string" },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "screenshotHash": { "type": "string" }
+  },
+  "required": ["requestId", "action", "confidence", "target", "waitSeconds", "reason", "warnings", "screenshotHash"],
+  "additionalProperties": false
+}

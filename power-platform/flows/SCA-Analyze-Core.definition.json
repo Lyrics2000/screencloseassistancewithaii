@@ -1,0 +1,1379 @@
+{
+  "$comment": "Reference definition for the solution-aware child flow 'SCA Analyze Core'. Build it in the designer following docs/08-flow-expressions.md; action names and expressions here are authoritative and can be compared with Peek code. Replace <ANTHROPIC_CONNECTOR_API_NAME> with the api name Power Platform assigns to the SCA custom connector (shown in the connector's URL / connection reference).",
+  "schemaVersion": "1.0.0.0",
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "sca_DataverseConnection"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_scaanthropic": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "sca_AnthropicClaudeConnection"
+        },
+        "api": {
+          "name": "<ANTHROPIC_CONNECTOR_API_NAME>"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "SCA Package Allowlist (sca_PackageAllowlist)": {
+          "defaultValue": "[\"com.schoolproject.adtestbed\"]",
+          "type": "String",
+          "metadata": {
+            "schemaName": "sca_PackageAllowlist"
+          }
+        },
+        "SCA Max Image Bytes (sca_MaxImageBytes)": {
+          "defaultValue": 3000000,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "sca_MaxImageBytes"
+          }
+        },
+        "SCA Min Confidence (sca_MinConfidence)": {
+          "defaultValue": 0.9,
+          "type": "Float",
+          "metadata": {
+            "schemaName": "sca_MinConfidence"
+          }
+        },
+        "SCA Claude Model (sca_ClaudeModel)": {
+          "defaultValue": "claude-opus-5-5",
+          "type": "String",
+          "metadata": {
+            "schemaName": "sca_ClaudeModel"
+          }
+        },
+        "SCA Claude Effort (sca_ClaudeEffort)": {
+          "defaultValue": "low",
+          "type": "String",
+          "metadata": {
+            "schemaName": "sca_ClaudeEffort"
+          }
+        },
+        "SCA Vision System Prompt (sca_VisionSystemPrompt)": {
+          "defaultValue": "<contents of power-platform/prompts/vision-system-prompt.txt>",
+          "type": "String",
+          "metadata": {
+            "schemaName": "sca_VisionSystemPrompt"
+          }
+        },
+        "SCA Claude Output Schema (sca_ClaudeOutputSchema)": {
+          "defaultValue": "<contents of power-platform/schemas/claude-output.schema.json>",
+          "type": "String",
+          "metadata": {
+            "schemaName": "sca_ClaudeOutputSchema"
+          }
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Button",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "title": "requestId",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_1": {
+                  "title": "sessionId",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_2": {
+                  "title": "screenshotBase64",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_3": {
+                  "title": "mimeType",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                },
+                "number": {
+                  "title": "screenshotWidth",
+                  "type": "number",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "NUMBER"
+                },
+                "number_1": {
+                  "title": "screenshotHeight",
+                  "type": "number",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "NUMBER"
+                },
+                "text_4": {
+                  "title": "screenshotHash",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_5": {
+                  "title": "foregroundPackage",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_6": {
+                  "title": "requestedAction",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_7": {
+                  "title": "channel",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "TEXT"
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3",
+                "number",
+                "number_1",
+                "text_4",
+                "text_5",
+                "text_6",
+                "text_7"
+              ]
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "outputs"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Initialize_varResponse": {
+          "type": "InitializeVariable",
+          "runAfter": {},
+          "inputs": {
+            "variables": [
+              {
+                "name": "varResponse",
+                "type": "object",
+                "value": {}
+              }
+            ]
+          }
+        },
+        "Initialize_varHttpStatus": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_varResponse": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "variables": [
+              {
+                "name": "varHttpStatus",
+                "type": "integer",
+                "value": 200
+              }
+            ]
+          }
+        },
+        "Initialize_varStartTicks": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_varHttpStatus": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "variables": [
+              {
+                "name": "varStartTicks",
+                "type": "integer",
+                "value": "@ticks(utcNow())"
+              }
+            ]
+          }
+        },
+        "Initialize_varRowId": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_varStartTicks": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "variables": [
+              {
+                "name": "varRowId",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Initialize_varModelLatencyMs": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_varRowId": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "variables": [
+              {
+                "name": "varModelLatencyMs",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialize_varInputTokens": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_varModelLatencyMs": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "variables": [
+              {
+                "name": "varInputTokens",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialize_varOutputTokens": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_varInputTokens": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "variables": [
+              {
+                "name": "varOutputTokens",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialize_varStopReason": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_varOutputTokens": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "variables": [
+              {
+                "name": "varStopReason",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Compose_Inputs": {
+          "type": "Compose",
+          "runAfter": {
+            "Initialize_varStopReason": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "requestId": "@{trim(coalesce(triggerBody()?['text'], ''))}",
+            "sessionId": "@{trim(coalesce(triggerBody()?['text_1'], ''))}",
+            "mimeType": "@{toLower(trim(coalesce(triggerBody()?['text_3'], '')))}",
+            "screenshotWidth": "@{coalesce(triggerBody()?['number'], '')}",
+            "screenshotHeight": "@{coalesce(triggerBody()?['number_1'], '')}",
+            "screenshotHash": "@{toLower(trim(coalesce(triggerBody()?['text_4'], '')))}",
+            "foregroundPackage": "@{trim(coalesce(triggerBody()?['text_5'], ''))}",
+            "requestedAction": "@{trim(coalesce(triggerBody()?['text_6'], ''))}",
+            "channel": "@{coalesce(triggerBody()?['text_7'], 'UNKNOWN')}"
+          }
+        },
+        "Compose_Image": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_Inputs": [
+              "Succeeded"
+            ]
+          },
+          "inputs": "@{trim(coalesce(triggerBody()?['text_2'], ''))}",
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Compose_Config": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_Image": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "allowlist": "@json(parameters('SCA Package Allowlist (sca_PackageAllowlist)'))",
+            "maxImageBytes": "@min(parameters('SCA Max Image Bytes (sca_MaxImageBytes)'), 7500000)",
+            "minConfidence": "@max(parameters('SCA Min Confidence (sca_MinConfidence)'), 0.9)",
+            "model": "@{parameters('SCA Claude Model (sca_ClaudeModel)')}",
+            "effort": "@{parameters('SCA Claude Effort (sca_ClaudeEffort)')}",
+            "maxModelEdge": 2576
+          }
+        },
+        "Scope_Try": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_Config": [
+              "Succeeded"
+            ]
+          },
+          "actions": {
+            "Compose_Input_Error": {
+              "type": "Compose",
+              "runAfter": {},
+              "inputs": "@if(empty(outputs('Compose_Inputs')?['requestId']), 'MISSING_REQUEST_ID', if(greater(length(outputs('Compose_Inputs')?['requestId']), 64), 'REQUEST_ID_TOO_LONG', if(empty(outputs('Compose_Inputs')?['sessionId']), 'MISSING_SESSION_ID', if(greater(length(outputs('Compose_Inputs')?['sessionId']), 64), 'SESSION_ID_TOO_LONG', if(not(equals(outputs('Compose_Inputs')?['requestedAction'], 'FIND_AD_CLOSE')), 'UNSUPPORTED_ACTION', if(not(contains(createArray('image/jpeg', 'image/png', 'image/webp'), outputs('Compose_Inputs')?['mimeType'])), 'UNSUPPORTED_MIME_TYPE', if(empty(outputs('Compose_Image')), 'MISSING_IMAGE', if(greater(div(mul(length(outputs('Compose_Image')), 3), 4), outputs('Compose_Config')?['maxImageBytes']), 'IMAGE_TOO_LARGE', if(not(startsWith(outputs('Compose_Image'), if(equals(outputs('Compose_Inputs')?['mimeType'], 'image/jpeg'), '/9j/', if(equals(outputs('Compose_Inputs')?['mimeType'], 'image/png'), 'iVBORw0KGgo', 'UklGR')))), 'IMAGE_MIME_MISMATCH', if(or(not(isInt(outputs('Compose_Inputs')?['screenshotWidth'])), not(isInt(outputs('Compose_Inputs')?['screenshotHeight']))), 'INVALID_DIMENSIONS', if(or(lessOrEquals(int(outputs('Compose_Inputs')?['screenshotWidth']), 0), lessOrEquals(int(outputs('Compose_Inputs')?['screenshotHeight']), 0)), 'INVALID_DIMENSIONS', if(or(greater(int(outputs('Compose_Inputs')?['screenshotWidth']), outputs('Compose_Config')?['maxModelEdge']), greater(int(outputs('Compose_Inputs')?['screenshotHeight']), outputs('Compose_Config')?['maxModelEdge'])), 'DIMENSIONS_TOO_LARGE', if(not(equals(length(outputs('Compose_Inputs')?['screenshotHash']), 16)), 'INVALID_SCREENSHOT_HASH', if(not(contains(outputs('Compose_Config')?['allowlist'], outputs('Compose_Inputs')?['foregroundPackage'])), 'PACKAGE_NOT_ALLOWED', 'OK'))))))))))))))"
+            },
+            "Condition_Input_Valid": {
+              "type": "If",
+              "runAfter": {
+                "Compose_Input_Error": [
+                  "Succeeded"
+                ]
+              },
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@outputs('Compose_Input_Error')",
+                      "OK"
+                    ]
+                  }
+                ]
+              },
+              "else": {
+                "actions": {
+                  "Set_Response_Input_Invalid": {
+                    "type": "SetVariable",
+                    "runAfter": {},
+                    "inputs": {
+                      "name": "varResponse",
+                      "value": {
+                        "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                        "action": "ERROR",
+                        "confidence": 0,
+                        "target": null,
+                        "waitSeconds": 0,
+                        "reason": "Request rejected by input validation.",
+                        "warnings": [
+                          "@{outputs('Compose_Input_Error')}"
+                        ],
+                        "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                      }
+                    }
+                  },
+                  "Set_Status_400": {
+                    "type": "SetVariable",
+                    "runAfter": {
+                      "Set_Response_Input_Invalid": [
+                        "Succeeded"
+                      ]
+                    },
+                    "inputs": {
+                      "name": "varHttpStatus",
+                      "value": 400
+                    }
+                  }
+                }
+              },
+              "actions": {
+                "List_Existing_Request": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "sca_analysisrequests",
+                      "$select": "sca_analysisrequestid,sca_status,sca_responsejson",
+                      "$filter": "sca_requestid eq '@{replace(outputs('Compose_Inputs')?['requestId'], '''', '''''')}'",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Condition_Request_Seen": {
+                  "type": "If",
+                  "runAfter": {
+                    "List_Existing_Request": [
+                      "Succeeded"
+                    ]
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "greater": [
+                          "@length(outputs('List_Existing_Request')?['body/value'])",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Condition_Previous_Completed": {
+                      "type": "If",
+                      "runAfter": {},
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@first(outputs('List_Existing_Request')?['body/value'])?['sca_status']",
+                              "COMPLETED"
+                            ]
+                          },
+                          {
+                            "not": {
+                              "equals": [
+                                "@coalesce(first(outputs('List_Existing_Request')?['body/value'])?['sca_responsejson'], '')",
+                                ""
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Set_Response_Replay": {
+                          "type": "SetVariable",
+                          "runAfter": {},
+                          "inputs": {
+                            "name": "varResponse",
+                            "value": "@json(first(outputs('List_Existing_Request')?['body/value'])?['sca_responsejson'])"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_Response_In_Progress": {
+                            "type": "SetVariable",
+                            "runAfter": {},
+                            "inputs": {
+                              "name": "varResponse",
+                              "value": {
+                                "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                "action": "ERROR",
+                                "confidence": 0,
+                                "target": null,
+                                "waitSeconds": 0,
+                                "reason": "A request with this requestId is already being processed.",
+                                "warnings": [
+                                  "REQUEST_IN_PROGRESS"
+                                ],
+                                "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                              }
+                            }
+                          },
+                          "Set_Status_409": {
+                            "type": "SetVariable",
+                            "runAfter": {
+                              "Set_Response_In_Progress": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "name": "varHttpStatus",
+                              "value": 409
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Create_Request_Row": {
+                        "type": "OpenApiConnection",
+                        "runAfter": {},
+                        "inputs": {
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "CreateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          },
+                          "parameters": {
+                            "entityName": "sca_analysisrequests",
+                            "item/sca_name": "@outputs('Compose_Inputs')?['requestId']",
+                            "item/sca_requestid": "@outputs('Compose_Inputs')?['requestId']",
+                            "item/sca_sessionid": "@outputs('Compose_Inputs')?['sessionId']",
+                            "item/sca_screenshothash": "@outputs('Compose_Inputs')?['screenshotHash']",
+                            "item/sca_foregroundpackage": "@outputs('Compose_Inputs')?['foregroundPackage']",
+                            "item/sca_channel": "@outputs('Compose_Inputs')?['channel']",
+                            "item/sca_status": "PROCESSING",
+                            "item/sca_flowrunid": "@workflow()?['run']?['name']",
+                            "item/sca_modelid": "@outputs('Compose_Config')?['model']"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        },
+                        "retryPolicy": {
+                          "type": "none"
+                        }
+                      },
+                      "Scope_Create_Conflict": {
+                        "type": "Scope",
+                        "runAfter": {
+                          "Create_Request_Row": [
+                            "Failed"
+                          ]
+                        },
+                        "actions": {
+                          "List_Request_After_Conflict": {
+                            "type": "OpenApiConnection",
+                            "runAfter": {},
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "ListRecords",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                              },
+                              "parameters": {
+                                "entityName": "sca_analysisrequests",
+                                "$select": "sca_analysisrequestid",
+                                "$filter": "sca_requestid eq '@{replace(outputs('Compose_Inputs')?['requestId'], '''', '''''')}'",
+                                "$top": 1
+                              },
+                              "authentication": "@parameters('$authentication')"
+                            }
+                          },
+                          "Set_Response_Conflict": {
+                            "type": "SetVariable",
+                            "runAfter": {
+                              "List_Request_After_Conflict": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "name": "varResponse",
+                              "value": {
+                                "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                "action": "ERROR",
+                                "confidence": 0,
+                                "target": null,
+                                "waitSeconds": 0,
+                                "reason": "@{if(greater(length(outputs('List_Request_After_Conflict')?['body/value']), 0), 'A request with this requestId is already being processed.', 'This screenshot hash was already analysed in this session.')}",
+                                "warnings": [
+                                  "@{if(greater(length(outputs('List_Request_After_Conflict')?['body/value']), 0), 'REQUEST_IN_PROGRESS', 'DUPLICATE_SCREENSHOT')}"
+                                ],
+                                "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                              }
+                            }
+                          },
+                          "Set_Status_409_Conflict": {
+                            "type": "SetVariable",
+                            "runAfter": {
+                              "Set_Response_Conflict": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "name": "varHttpStatus",
+                              "value": 409
+                            }
+                          }
+                        }
+                      },
+                      "Set_varRowId": {
+                        "type": "SetVariable",
+                        "runAfter": {
+                          "Create_Request_Row": [
+                            "Succeeded"
+                          ]
+                        },
+                        "inputs": {
+                          "name": "varRowId",
+                          "value": "@{outputs('Create_Request_Row')?['body/sca_analysisrequestid']}"
+                        }
+                      },
+                      "Compose_Claude_Request": {
+                        "type": "Compose",
+                        "runAfter": {
+                          "Set_varRowId": [
+                            "Succeeded"
+                          ]
+                        },
+                        "inputs": {
+                          "model": "@{outputs('Compose_Config')?['model']}",
+                          "max_tokens": 8000,
+                          "system": "@{parameters('SCA Vision System Prompt (sca_VisionSystemPrompt)')}",
+                          "metadata": {
+                            "user_id": "@{outputs('Compose_Inputs')?['sessionId']}"
+                          },
+                          "output_config": {
+                            "effort": "@{outputs('Compose_Config')?['effort']}",
+                            "format": {
+                              "type": "json_schema",
+                              "schema": "@json(parameters('SCA Claude Output Schema (sca_ClaudeOutputSchema)'))"
+                            }
+                          },
+                          "messages": [
+                            {
+                              "role": "user",
+                              "content": [
+                                {
+                                  "type": "image",
+                                  "source": {
+                                    "type": "base64",
+                                    "media_type": "@{outputs('Compose_Inputs')?['mimeType']}",
+                                    "data": "@{outputs('Compose_Image')}"
+                                  }
+                                },
+                                {
+                                  "type": "text",
+                                  "text": "Screenshot dimensions: @{int(outputs('Compose_Inputs')?['screenshotWidth'])}x@{int(outputs('Compose_Inputs')?['screenshotHeight'])} pixels (width x height). requestedAction: FIND_AD_CLOSE. Return only the JSON object."
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs",
+                              "outputs"
+                            ]
+                          }
+                        }
+                      },
+                      "Set_varModelStart": {
+                        "type": "SetVariable",
+                        "runAfter": {
+                          "Compose_Claude_Request": [
+                            "Succeeded"
+                          ]
+                        },
+                        "inputs": {
+                          "name": "varModelLatencyMs",
+                          "value": "@div(sub(ticks(utcNow()), variables('varStartTicks')), 10000)"
+                        }
+                      },
+                      "Analyze_Screenshot": {
+                        "type": "OpenApiConnection",
+                        "runAfter": {
+                          "Set_varModelStart": [
+                            "Succeeded"
+                          ]
+                        },
+                        "inputs": {
+                          "host": {
+                            "connectionName": "shared_scaanthropic",
+                            "operationId": "AnalyzeScreenshot",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/<ANTHROPIC_CONNECTOR_API_NAME>"
+                          },
+                          "parameters": {
+                            "anthropic-version": "2023-06-01",
+                            "content-type": "application/json",
+                            "body": "@outputs('Compose_Claude_Request')"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        },
+                        "limit": {
+                          "timeout": "PT60S"
+                        },
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 2,
+                          "interval": "PT2S",
+                          "minimumInterval": "PT2S",
+                          "maximumInterval": "PT8S"
+                        },
+                        "runtimeConfiguration": {
+                          "secureData": {
+                            "properties": [
+                              "inputs"
+                            ]
+                          }
+                        }
+                      },
+                      "Set_Response_Model_Call_Failed": {
+                        "type": "SetVariable",
+                        "runAfter": {
+                          "Analyze_Screenshot": [
+                            "Failed",
+                            "TimedOut"
+                          ]
+                        },
+                        "inputs": {
+                          "name": "varResponse",
+                          "value": {
+                            "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                            "action": "ERROR",
+                            "confidence": 0,
+                            "target": null,
+                            "waitSeconds": 0,
+                            "reason": "The vision model call failed or timed out.",
+                            "warnings": [
+                              "@{concat('MODEL_CALL_FAILED_HTTP_', coalesce(string(outputs('Analyze_Screenshot')?['statusCode']), 'TIMEOUT'))}"
+                            ],
+                            "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                          }
+                        }
+                      },
+                      "Scope_Interpret": {
+                        "type": "Scope",
+                        "runAfter": {
+                          "Analyze_Screenshot": [
+                            "Succeeded"
+                          ]
+                        },
+                        "actions": {
+                          "Set_varModelLatency": {
+                            "type": "SetVariable",
+                            "runAfter": {},
+                            "inputs": {
+                              "name": "varModelLatencyMs",
+                              "value": "@sub(div(sub(ticks(utcNow()), variables('varStartTicks')), 10000), variables('varModelLatencyMs'))"
+                            }
+                          },
+                          "Set_varInputTokens": {
+                            "type": "SetVariable",
+                            "runAfter": {
+                              "Set_varModelLatency": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "name": "varInputTokens",
+                              "value": "@int(coalesce(outputs('Analyze_Screenshot')?['body/usage/input_tokens'], 0))"
+                            }
+                          },
+                          "Set_varOutputTokens": {
+                            "type": "SetVariable",
+                            "runAfter": {
+                              "Set_varInputTokens": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "name": "varOutputTokens",
+                              "value": "@int(coalesce(outputs('Analyze_Screenshot')?['body/usage/output_tokens'], 0))"
+                            }
+                          },
+                          "Set_varStopReason": {
+                            "type": "SetVariable",
+                            "runAfter": {
+                              "Set_varOutputTokens": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "name": "varStopReason",
+                              "value": "@{coalesce(outputs('Analyze_Screenshot')?['body/stop_reason'], 'unknown')}"
+                            }
+                          },
+                          "Filter_Text_Blocks": {
+                            "type": "Query",
+                            "runAfter": {
+                              "Set_varStopReason": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "from": "@coalesce(outputs('Analyze_Screenshot')?['body/content'], createArray())",
+                              "where": "@equals(item()?['type'], 'text')"
+                            }
+                          },
+                          "Compose_Raw_Text": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_Text_Blocks": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": "@trim(if(equals(length(body('Filter_Text_Blocks')), 1), coalesce(first(body('Filter_Text_Blocks'))?['text'], ''), ''))"
+                          },
+                          "Compose_Envelope_Error": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_Raw_Text": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": "@if(not(equals(variables('varStopReason'), 'end_turn')), concat('MODEL_STOP_', toUpper(variables('varStopReason'))), if(not(equals(length(body('Filter_Text_Blocks')), 1)), 'MODEL_TEXT_BLOCK_COUNT', if(empty(outputs('Compose_Raw_Text')), 'MODEL_EMPTY_OUTPUT', if(or(not(startsWith(outputs('Compose_Raw_Text'), '{')), not(endsWith(outputs('Compose_Raw_Text'), '}'))), 'MODEL_OUTPUT_NOT_JSON', 'OK'))))"
+                          },
+                          "Condition_Envelope_OK": {
+                            "type": "If",
+                            "runAfter": {
+                              "Compose_Envelope_Error": [
+                                "Succeeded"
+                              ]
+                            },
+                            "expression": {
+                              "and": [
+                                {
+                                  "equals": [
+                                    "@outputs('Compose_Envelope_Error')",
+                                    "OK"
+                                  ]
+                                }
+                              ]
+                            },
+                            "else": {
+                              "actions": {
+                                "Set_Response_Envelope_Invalid": {
+                                  "type": "SetVariable",
+                                  "runAfter": {},
+                                  "inputs": {
+                                    "name": "varResponse",
+                                    "value": {
+                                      "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                      "action": "ERROR",
+                                      "confidence": 0,
+                                      "target": null,
+                                      "waitSeconds": 0,
+                                      "reason": "The vision model output was not a single JSON object.",
+                                      "warnings": [
+                                        "@{outputs('Compose_Envelope_Error')}"
+                                      ],
+                                      "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "actions": {
+                              "Parse_Claude_JSON": {
+                                "type": "ParseJson",
+                                "runAfter": {},
+                                "inputs": {
+                                  "content": "@outputs('Compose_Raw_Text')",
+                                  "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                      "action": {
+                                        "type": "string",
+                                        "enum": [
+                                          "CLOSE",
+                                          "WAIT",
+                                          "NO_ACTION",
+                                          "UNSAFE",
+                                          "close",
+                                          "wait",
+                                          "no_action",
+                                          "unsafe"
+                                        ]
+                                      },
+                                      "confidence": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "label": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "maxLength": 200
+                                      },
+                                      "center_x": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "minimum": 0
+                                      },
+                                      "center_y": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "minimum": 0
+                                      },
+                                      "left": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "minimum": 0
+                                      },
+                                      "top": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "minimum": 0
+                                      },
+                                      "right": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "minimum": 0
+                                      },
+                                      "bottom": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "minimum": 0
+                                      },
+                                      "wait_seconds": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 60
+                                      },
+                                      "reason": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 1000
+                                      },
+                                      "observations": {
+                                        "type": "array",
+                                        "maxItems": 10,
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "action",
+                                      "confidence",
+                                      "label",
+                                      "center_x",
+                                      "center_y",
+                                      "left",
+                                      "top",
+                                      "right",
+                                      "bottom",
+                                      "wait_seconds",
+                                      "reason",
+                                      "observations"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "Set_Response_Schema_Invalid": {
+                                "type": "SetVariable",
+                                "runAfter": {
+                                  "Parse_Claude_JSON": [
+                                    "Failed"
+                                  ]
+                                },
+                                "inputs": {
+                                  "name": "varResponse",
+                                  "value": {
+                                    "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                    "action": "ERROR",
+                                    "confidence": 0,
+                                    "target": null,
+                                    "waitSeconds": 0,
+                                    "reason": "The vision model output failed schema validation.",
+                                    "warnings": [
+                                      "MODEL_OUTPUT_SCHEMA_INVALID"
+                                    ],
+                                    "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                                  }
+                                }
+                              },
+                              "Compose_Model": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Parse_Claude_JSON": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "action": "@{toUpper(body('Parse_Claude_JSON')?['action'])}",
+                                  "confidence": "@float(string(body('Parse_Claude_JSON')?['confidence']))",
+                                  "label": "@{trim(coalesce(body('Parse_Claude_JSON')?['label'], ''))}",
+                                  "cx": "@coalesce(body('Parse_Claude_JSON')?['center_x'], -1)",
+                                  "cy": "@coalesce(body('Parse_Claude_JSON')?['center_y'], -1)",
+                                  "left": "@coalesce(body('Parse_Claude_JSON')?['left'], -1)",
+                                  "top": "@coalesce(body('Parse_Claude_JSON')?['top'], -1)",
+                                  "right": "@coalesce(body('Parse_Claude_JSON')?['right'], -1)",
+                                  "bottom": "@coalesce(body('Parse_Claude_JSON')?['bottom'], -1)",
+                                  "hasFullTarget": "@and(not(equals(body('Parse_Claude_JSON')?['center_x'], null)), not(equals(body('Parse_Claude_JSON')?['center_y'], null)), not(equals(body('Parse_Claude_JSON')?['left'], null)), not(equals(body('Parse_Claude_JSON')?['top'], null)), not(equals(body('Parse_Claude_JSON')?['right'], null)), not(equals(body('Parse_Claude_JSON')?['bottom'], null)), not(equals(body('Parse_Claude_JSON')?['label'], null)))",
+                                  "hasAnyTarget": "@or(not(equals(body('Parse_Claude_JSON')?['center_x'], null)), not(equals(body('Parse_Claude_JSON')?['center_y'], null)), not(equals(body('Parse_Claude_JSON')?['left'], null)), not(equals(body('Parse_Claude_JSON')?['top'], null)), not(equals(body('Parse_Claude_JSON')?['right'], null)), not(equals(body('Parse_Claude_JSON')?['bottom'], null)), not(equals(body('Parse_Claude_JSON')?['label'], null)))",
+                                  "waitSeconds": "@body('Parse_Claude_JSON')?['wait_seconds']",
+                                  "reason": "@{substring(trim(body('Parse_Claude_JSON')?['reason']), 0, min(300, length(trim(body('Parse_Claude_JSON')?['reason']))))}",
+                                  "w": "@int(outputs('Compose_Inputs')?['screenshotWidth'])",
+                                  "h": "@int(outputs('Compose_Inputs')?['screenshotHeight'])"
+                                }
+                              },
+                              "Compose_Checks": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_Model": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "reasonValid": "@not(empty(outputs('Compose_Model')?['reason']))",
+                                  "geometryValid": "@and(outputs('Compose_Model')?['hasFullTarget'], not(empty(outputs('Compose_Model')?['label'])), greaterOrEquals(outputs('Compose_Model')?['left'], 0), greaterOrEquals(outputs('Compose_Model')?['top'], 0), less(outputs('Compose_Model')?['left'], outputs('Compose_Model')?['right']), less(outputs('Compose_Model')?['top'], outputs('Compose_Model')?['bottom']), lessOrEquals(outputs('Compose_Model')?['right'], outputs('Compose_Model')?['w']), lessOrEquals(outputs('Compose_Model')?['bottom'], outputs('Compose_Model')?['h']), greaterOrEquals(outputs('Compose_Model')?['cx'], outputs('Compose_Model')?['left']), lessOrEquals(outputs('Compose_Model')?['cx'], outputs('Compose_Model')?['right']), greaterOrEquals(outputs('Compose_Model')?['cy'], outputs('Compose_Model')?['top']), lessOrEquals(outputs('Compose_Model')?['cy'], outputs('Compose_Model')?['bottom']), less(outputs('Compose_Model')?['cx'], outputs('Compose_Model')?['w']), less(outputs('Compose_Model')?['cy'], outputs('Compose_Model')?['h']))",
+                                  "confidenceOk": "@greaterOrEquals(outputs('Compose_Model')?['confidence'], outputs('Compose_Config')?['minConfidence'])",
+                                  "waitValid": "@and(greaterOrEquals(outputs('Compose_Model')?['waitSeconds'], 1), lessOrEquals(outputs('Compose_Model')?['waitSeconds'], 60))",
+                                  "knownAction": "@contains(createArray('CLOSE', 'WAIT', 'NO_ACTION', 'UNSAFE'), outputs('Compose_Model')?['action'])"
+                                }
+                              },
+                              "Compose_Resp_Close": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_Checks": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                  "action": "CLOSE",
+                                  "confidence": "@outputs('Compose_Model')?['confidence']",
+                                  "target": {
+                                    "label": "@{substring(outputs('Compose_Model')?['label'], 0, min(100, length(outputs('Compose_Model')?['label'])))}",
+                                    "centerX": "@outputs('Compose_Model')?['cx']",
+                                    "centerY": "@outputs('Compose_Model')?['cy']",
+                                    "normalizedX": "@div(float(outputs('Compose_Model')?['cx']), float(outputs('Compose_Model')?['w']))",
+                                    "normalizedY": "@div(float(outputs('Compose_Model')?['cy']), float(outputs('Compose_Model')?['h']))",
+                                    "left": "@outputs('Compose_Model')?['left']",
+                                    "top": "@outputs('Compose_Model')?['top']",
+                                    "right": "@outputs('Compose_Model')?['right']",
+                                    "bottom": "@outputs('Compose_Model')?['bottom']"
+                                  },
+                                  "waitSeconds": 0,
+                                  "reason": "@{outputs('Compose_Model')?['reason']}",
+                                  "warnings": [],
+                                  "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                                }
+                              },
+                              "Compose_Resp_Wait": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_Resp_Close": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                  "action": "WAIT",
+                                  "confidence": "@outputs('Compose_Model')?['confidence']",
+                                  "target": null,
+                                  "waitSeconds": "@outputs('Compose_Model')?['waitSeconds']",
+                                  "reason": "@{outputs('Compose_Model')?['reason']}",
+                                  "warnings": "@if(outputs('Compose_Model')?['hasAnyTarget'], createArray('TARGET_DISCARDED_FOR_NON_CLOSE'), createArray())",
+                                  "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                                }
+                              },
+                              "Compose_Resp_Passthrough": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_Resp_Wait": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                  "action": "@{outputs('Compose_Model')?['action']}",
+                                  "confidence": "@outputs('Compose_Model')?['confidence']",
+                                  "target": null,
+                                  "waitSeconds": 0,
+                                  "reason": "@{outputs('Compose_Model')?['reason']}",
+                                  "warnings": "@if(outputs('Compose_Model')?['hasAnyTarget'], createArray('TARGET_DISCARDED_FOR_NON_CLOSE'), createArray())",
+                                  "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                                }
+                              },
+                              "Compose_Resp_Low_Confidence": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_Resp_Passthrough": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                  "action": "NO_ACTION",
+                                  "confidence": "@outputs('Compose_Model')?['confidence']",
+                                  "target": null,
+                                  "waitSeconds": 0,
+                                  "reason": "@{concat('Close control confidence below threshold. ', outputs('Compose_Model')?['reason'])}",
+                                  "warnings": [
+                                    "LOW_CONFIDENCE_CLOSE_SUPPRESSED"
+                                  ],
+                                  "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                                }
+                              },
+                              "Compose_Validation_Error_Code": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_Resp_Low_Confidence": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": "@if(not(outputs('Compose_Checks')?['knownAction']), 'MODEL_ACTION_INVALID', if(not(outputs('Compose_Checks')?['reasonValid']), 'MODEL_REASON_MISSING', if(and(equals(outputs('Compose_Model')?['action'], 'CLOSE'), not(outputs('Compose_Checks')?['geometryValid'])), 'TARGET_OUT_OF_BOUNDS', if(and(equals(outputs('Compose_Model')?['action'], 'WAIT'), not(outputs('Compose_Checks')?['waitValid'])), 'WAIT_SECONDS_INVALID', 'OK'))))"
+                              },
+                              "Compose_Resp_Invalid": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_Validation_Error_Code": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                                  "action": "ERROR",
+                                  "confidence": 0,
+                                  "target": null,
+                                  "waitSeconds": 0,
+                                  "reason": "The vision model output failed semantic validation.",
+                                  "warnings": [
+                                    "@{outputs('Compose_Validation_Error_Code')}"
+                                  ],
+                                  "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                                }
+                              },
+                              "Set_Response_Final": {
+                                "type": "SetVariable",
+                                "runAfter": {
+                                  "Compose_Resp_Invalid": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": {
+                                  "name": "varResponse",
+                                  "value": "@if(not(equals(outputs('Compose_Validation_Error_Code'), 'OK')), outputs('Compose_Resp_Invalid'), if(equals(outputs('Compose_Model')?['action'], 'CLOSE'), if(outputs('Compose_Checks')?['confidenceOk'], outputs('Compose_Resp_Close'), outputs('Compose_Resp_Low_Confidence')), if(equals(outputs('Compose_Model')?['action'], 'WAIT'), outputs('Compose_Resp_Wait'), outputs('Compose_Resp_Passthrough'))))"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Update_Request_Row": {
+                        "type": "OpenApiConnection",
+                        "runAfter": {
+                          "Scope_Interpret": [
+                            "Succeeded",
+                            "Failed",
+                            "Skipped",
+                            "TimedOut"
+                          ],
+                          "Set_Response_Model_Call_Failed": [
+                            "Succeeded",
+                            "Skipped"
+                          ]
+                        },
+                        "inputs": {
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          },
+                          "parameters": {
+                            "entityName": "sca_analysisrequests",
+                            "recordId": "@variables('varRowId')",
+                            "item/sca_status": "@{if(empty(variables('varResponse')), 'FAILED', 'COMPLETED')}",
+                            "item/sca_action": "@{coalesce(variables('varResponse')?['action'], 'ERROR')}",
+                            "item/sca_confidence": "@coalesce(variables('varResponse')?['confidence'], 0)",
+                            "item/sca_errorcode": "@{if(equals(variables('varResponse')?['action'], 'ERROR'), first(variables('varResponse')?['warnings']), '')}",
+                            "item/sca_responsejson": "@{string(variables('varResponse'))}",
+                            "item/sca_latencyms": "@div(sub(ticks(utcNow()), variables('varStartTicks')), 10000)",
+                            "item/sca_modellatencyms": "@variables('varModelLatencyMs')",
+                            "item/sca_inputtokens": "@variables('varInputTokens')",
+                            "item/sca_outputtokens": "@variables('varOutputTokens')",
+                            "item/sca_stopreason": "@{variables('varStopReason')}"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Scope_Catch": {
+          "type": "Scope",
+          "runAfter": {
+            "Scope_Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "actions": {
+            "Condition_No_Response_Yet": {
+              "type": "If",
+              "runAfter": {},
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@empty(variables('varResponse'))",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Set_Response_Internal_Error": {
+                  "type": "SetVariable",
+                  "runAfter": {},
+                  "inputs": {
+                    "name": "varResponse",
+                    "value": {
+                      "requestId": "@{outputs('Compose_Inputs')?['requestId']}",
+                      "action": "ERROR",
+                      "confidence": 0,
+                      "target": null,
+                      "waitSeconds": 0,
+                      "reason": "@{concat('Internal flow error. Trace id: ', workflow()?['run']?['name'])}",
+                      "warnings": [
+                        "INTERNAL_FLOW_ERROR"
+                      ],
+                      "screenshotHash": "@{outputs('Compose_Inputs')?['screenshotHash']}"
+                    }
+                  }
+                },
+                "Set_Status_500": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Set_Response_Internal_Error": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "name": "varHttpStatus",
+                    "value": 500
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Condition_Row_Created": {
+              "type": "If",
+              "runAfter": {
+                "Condition_No_Response_Yet": [
+                  "Succeeded"
+                ]
+              },
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": [
+                        "@variables('varRowId')",
+                        ""
+                      ]
+                    }
+                  }
+                ]
+              },
+              "actions": {
+                "Mark_Row_Failed": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "sca_analysisrequests",
+                      "recordId": "@variables('varRowId')",
+                      "item/sca_status": "FAILED",
+                      "item/sca_action": "ERROR",
+                      "item/sca_errorcode": "@{first(variables('varResponse')?['warnings'])}",
+                      "item/sca_responsejson": "@{string(variables('varResponse'))}",
+                      "item/sca_latencyms": "@div(sub(ticks(utcNow()), variables('varStartTicks')), 10000)"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            }
+          }
+        },
+        "Respond_To_Caller": {
+          "type": "Response",
+          "kind": "PowerApp",
+          "runAfter": {
+            "Scope_Catch": [
+              "Succeeded",
+              "Skipped",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "inputs": {
+            "statusCode": 200,
+            "body": {
+              "responsejson": "@{string(variables('varResponse'))}",
+              "httpstatus": "@variables('varHttpStatus')"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "responsejson": {
+                  "title": "responseJson",
+                  "type": "string",
+                  "x-ms-dynamically-added": true
+                },
+                "httpstatus": {
+                  "title": "httpStatus",
+                  "type": "number",
+                  "x-ms-dynamically-added": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": ""
+  }
+}

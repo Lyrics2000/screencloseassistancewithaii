@@ -1,0 +1,103 @@
+# Copilot Studio topic: Analyze Android Screenshot
+#
+# MANUAL PORTAL STEP: Topics > + Add a topic > From blank > ... (More) > Open code editor,
+# replace the whole content with this file, then Save. Afterwards open the "Action" node and
+# re-select the agent flow "SCA Agent Analyze" so Copilot Studio binds the environment-specific
+# flowId (replace <SCA_AGENT_ANALYZE_FLOW_ID> first if you paste it verbatim).
+#
+# Design (see docs/04-topic-design.md):
+#   - Trigger: "It's redirected to" only. There are NO trigger phrases, so neither the classic
+#     NLU nor generative orchestration can start this topic from free text.
+#   - Inputs are topic input variables that callers must supply; nothing is inferred by the model
+#     (every input has shouldPromptUser: false and no entity extraction).
+#   - The deterministic agent flow performs all validation and returns the final JSON string.
+#   - The topic returns that JSON unmodified as the output variable responseJson and, for
+#     channel callers, as a single message whose text is the JSON document.
+kind: AdaptiveDialog
+modelDescription: "Deterministic screenshot analysis. Only runs when another topic or a channel event redirects to it with every input already supplied. Never invoke from user conversation."
+beginDialog:
+  kind: OnRedirect
+  id: main
+  actions:
+    - kind: ConditionGroup
+      id: guardRequired
+      conditions:
+        - id: guardRequiredMissing
+          condition: =IsBlank(Topic.requestId) || IsBlank(Topic.sessionId) || IsBlank(Topic.screenshotBase64) || IsBlank(Topic.mimeType) || IsBlank(Topic.screenshotHash) || IsBlank(Topic.foregroundPackage) || IsBlank(Topic.requestedAction) || IsBlank(Topic.screenshotWidth) || IsBlank(Topic.screenshotHeight)
+          actions:
+            - kind: SetVariable
+              id: setMissingInputResponse
+              variable: Topic.responseJson
+              value: ="{""requestId"":""" & Substitute(Substitute(Coalesce(Topic.requestId, ""), "\", ""), """", "") & """,""action"":""ERROR"",""confidence"":0,""target"":null,""waitSeconds"":0,""reason"":""Missing required topic input."",""warnings"":[""MISSING_INPUT""],""screenshotHash"":""" & Substitute(Substitute(Coalesce(Topic.screenshotHash, ""), "\", ""), """", "") & """}"
+
+      elseActions:
+        - kind: InvokeFlowAction
+          id: invokeScaAgentAnalyze
+          flowId: <SCA_AGENT_ANALYZE_FLOW_ID>
+          input:
+            binding:
+              text: =Topic.requestId
+              text_1: =Topic.sessionId
+              text_2: =Topic.screenshotBase64
+              text_3: =Topic.mimeType
+              number: =Topic.screenshotWidth
+              number_1: =Topic.screenshotHeight
+              text_4: =Topic.screenshotHash
+              text_5: =Topic.foregroundPackage
+              text_6: =Topic.requestedAction
+          output:
+            binding:
+              responsejson: Topic.responseJson
+
+    - kind: SendActivity
+      id: sendResponseJson
+      activity: "{Topic.responseJson}"
+
+    - kind: EndDialog
+      id: endTopic
+
+inputType:
+  properties:
+    requestId:
+      displayName: requestId
+      description: Client-generated request id (idempotency key)
+      type: String
+    sessionId:
+      displayName: sessionId
+      description: Client-generated id of the user-initiated session
+      type: String
+    screenshotBase64:
+      displayName: screenshotBase64
+      description: Base64 image bytes without a data URI prefix
+      type: String
+    mimeType:
+      displayName: mimeType
+      description: image/jpeg, image/png or image/webp
+      type: String
+    screenshotWidth:
+      displayName: screenshotWidth
+      description: Width in pixels of the supplied image
+      type: Number
+    screenshotHeight:
+      displayName: screenshotHeight
+      description: Height in pixels of the supplied image
+      type: Number
+    screenshotHash:
+      displayName: screenshotHash
+      description: 64-bit dHash as 16 lowercase hex characters
+      type: String
+    foregroundPackage:
+      displayName: foregroundPackage
+      description: Android package shown in the screenshot
+      type: String
+    requestedAction:
+      displayName: requestedAction
+      description: Must be FIND_AD_CLOSE
+      type: String
+
+outputType:
+  properties:
+    responseJson:
+      displayName: responseJson
+      description: SCA response document (application/json)
+      type: String

@@ -1,0 +1,96 @@
+{
+  "$comment": "Reference definition for the Copilot Studio agent flow 'SCA Agent Analyze' (plan: Copilot Studio). Trigger = 'When an agent calls the flow', final action = 'Respond to the agent'. Asynchronous response must stay OFF and the flow must answer within 100 seconds. Replace <SCA_ANALYZE_CORE_WORKFLOW_ID> by picking the child flow in the designer.",
+  "schemaVersion": "1.0.0.0",
+  "properties": {
+    "connectionReferences": {},
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": { "defaultValue": {}, "type": "Object" },
+        "$authentication": { "defaultValue": {}, "type": "SecureObject" }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": { "title": "requestId", "type": "string", "x-ms-dynamically-added": true, "x-ms-content-hint": "TEXT" },
+                "text_1": { "title": "sessionId", "type": "string", "x-ms-dynamically-added": true, "x-ms-content-hint": "TEXT" },
+                "text_2": { "title": "screenshotBase64", "type": "string", "x-ms-dynamically-added": true, "x-ms-content-hint": "TEXT" },
+                "text_3": { "title": "mimeType", "type": "string", "x-ms-dynamically-added": true, "x-ms-content-hint": "TEXT" },
+                "number": { "title": "screenshotWidth", "type": "number", "x-ms-dynamically-added": true, "x-ms-content-hint": "NUMBER" },
+                "number_1": { "title": "screenshotHeight", "type": "number", "x-ms-dynamically-added": true, "x-ms-content-hint": "NUMBER" },
+                "text_4": { "title": "screenshotHash", "type": "string", "x-ms-dynamically-added": true, "x-ms-content-hint": "TEXT" },
+                "text_5": { "title": "foregroundPackage", "type": "string", "x-ms-dynamically-added": true, "x-ms-content-hint": "TEXT" },
+                "text_6": { "title": "requestedAction", "type": "string", "x-ms-dynamically-added": true, "x-ms-content-hint": "TEXT" }
+              },
+              "required": ["text", "text_1", "text_2", "text_3", "number", "number_1", "text_4", "text_5", "text_6"]
+            }
+          },
+          "runtimeConfiguration": { "secureData": { "properties": ["outputs"] } }
+        }
+      },
+      "actions": {
+        "Run_Core": {
+          "type": "Workflow",
+          "runAfter": {},
+          "inputs": {
+            "host": { "workflowReferenceName": "<SCA_ANALYZE_CORE_WORKFLOW_ID>" },
+            "body": {
+              "text": "@{triggerBody()?['text']}",
+              "text_1": "@{triggerBody()?['text_1']}",
+              "text_2": "@{triggerBody()?['text_2']}",
+              "text_3": "@{triggerBody()?['text_3']}",
+              "number": "@triggerBody()?['number']",
+              "number_1": "@triggerBody()?['number_1']",
+              "text_4": "@{triggerBody()?['text_4']}",
+              "text_5": "@{triggerBody()?['text_5']}",
+              "text_6": "@{triggerBody()?['text_6']}",
+              "text_7": "COPILOT_TOPIC"
+            }
+          },
+          "limit": { "timeout": "PT90S" },
+          "runtimeConfiguration": { "secureData": { "properties": ["inputs"] } }
+        },
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "runAfter": { "Run_Core": ["Succeeded"] },
+          "inputs": {
+            "statusCode": 200,
+            "body": { "responsejson": "@{body('Run_Core')?['responsejson']}" },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "responsejson": { "title": "responseJson", "type": "string", "x-ms-dynamically-added": true }
+              }
+            }
+          }
+        },
+        "Respond_to_the_agent_on_failure": {
+          "type": "Response",
+          "kind": "Skills",
+          "runAfter": { "Run_Core": ["Failed", "TimedOut", "Skipped"] },
+          "inputs": {
+            "statusCode": 200,
+            "body": {
+              "responsejson": "@{string(json(concat('{\"requestId\":\"', replace(replace(coalesce(triggerBody()?['text'], ''), '\"', ''), '\\', ''), '\",\"action\":\"ERROR\",\"confidence\":0,\"target\":null,\"waitSeconds\":0,\"reason\":\"Core analysis flow failed.\",\"warnings\":[\"CORE_INVOCATION_FAILED\"],\"screenshotHash\":\"', replace(replace(coalesce(triggerBody()?['text_4'], ''), '\"', ''), '\\', ''), '\"}')))}"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "responsejson": { "title": "responseJson", "type": "string", "x-ms-dynamically-added": true }
+              }
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": ""
+  }
+}

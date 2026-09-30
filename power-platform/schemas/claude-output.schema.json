@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["CLOSE", "WAIT", "NO_ACTION", "UNSAFE"]
+    },
+    "confidence": { "type": "number" },
+    "label": { "type": ["string", "null"] },
+    "center_x": { "type": ["integer", "null"] },
+    "center_y": { "type": ["integer", "null"] },
+    "left": { "type": ["integer", "null"] },
+    "top": { "type": ["integer", "null"] },
+    "right": { "type": ["integer", "null"] },
+    "bottom": { "type": ["integer", "null"] },
+    "wait_seconds": { "type": "integer" },
+    "reason": { "type": "string" },
+    "observations": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "action",
+    "confidence",
+    "label",
+    "center_x",
+    "center_y",
+    "left",
+    "top",
+    "right",
+    "bottom",
+    "wait_seconds",
+    "reason",
+    "observations"
+  ],
+  "additionalProperties": false
+}

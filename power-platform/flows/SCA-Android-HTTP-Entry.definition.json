@@ -1,0 +1,103 @@
+{
+  "$comment": "Reference definition for 'SCA Android HTTP Entry'. MANUAL PORTAL STEP: on the trigger set 'Who can trigger the flow' = 'Specific users in my tenant' and list the allowed users (or the Android app's testers). Never use 'Anyone' - that produces a sig= SAS URL which must not ship in an APK. Replace <SCA_ANALYZE_CORE_WORKFLOW_ID> by selecting the child flow in the 'Run a Child Flow' action.",
+  "schemaVersion": "1.0.0.0",
+  "properties": {
+    "connectionReferences": {},
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": { "defaultValue": {}, "type": "Object" },
+        "$authentication": { "defaultValue": {}, "type": "SecureObject" }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Http",
+          "inputs": {
+            "method": "POST",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "requestId": { "type": "string" },
+                "sessionId": { "type": "string" },
+                "screenshotBase64": { "type": "string" },
+                "mimeType": { "type": "string" },
+                "screenshotWidth": { "type": "integer" },
+                "screenshotHeight": { "type": "integer" },
+                "screenshotHash": { "type": "string" },
+                "foregroundPackage": { "type": "string" },
+                "requestedAction": { "type": "string" }
+              }
+            }
+          },
+          "runtimeConfiguration": { "secureData": { "properties": ["inputs", "outputs"] } }
+        }
+      },
+      "actions": {
+        "Run_Core": {
+          "type": "Workflow",
+          "runAfter": {},
+          "inputs": {
+            "host": { "workflowReferenceName": "<SCA_ANALYZE_CORE_WORKFLOW_ID>" },
+            "body": {
+              "text": "@{coalesce(triggerBody()?['requestId'], '')}",
+              "text_1": "@{coalesce(triggerBody()?['sessionId'], '')}",
+              "text_2": "@{coalesce(triggerBody()?['screenshotBase64'], '')}",
+              "text_3": "@{coalesce(triggerBody()?['mimeType'], '')}",
+              "number": "@coalesce(triggerBody()?['screenshotWidth'], 0)",
+              "number_1": "@coalesce(triggerBody()?['screenshotHeight'], 0)",
+              "text_4": "@{coalesce(triggerBody()?['screenshotHash'], '')}",
+              "text_5": "@{coalesce(triggerBody()?['foregroundPackage'], '')}",
+              "text_6": "@{coalesce(triggerBody()?['requestedAction'], '')}",
+              "text_7": "ANDROID_HTTP"
+            }
+          },
+          "limit": { "timeout": "PT100S" },
+          "runtimeConfiguration": { "secureData": { "properties": ["inputs"] } }
+        },
+        "Response_Success": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": { "Run_Core": ["Succeeded"] },
+          "inputs": {
+            "statusCode": "@int(body('Run_Core')?['httpstatus'])",
+            "headers": {
+              "Content-Type": "application/json; charset=utf-8",
+              "Cache-Control": "no-store",
+              "x-sca-request-id": "@{coalesce(triggerBody()?['requestId'], '')}",
+              "x-sca-flow-run-id": "@{workflow()?['run']?['name']}"
+            },
+            "body": "@json(body('Run_Core')?['responsejson'])"
+          }
+        },
+        "Response_Core_Failed": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": { "Run_Core": ["Failed", "TimedOut", "Skipped"] },
+          "inputs": {
+            "statusCode": 502,
+            "headers": {
+              "Content-Type": "application/json; charset=utf-8",
+              "Cache-Control": "no-store",
+              "x-sca-request-id": "@{coalesce(triggerBody()?['requestId'], '')}",
+              "x-sca-flow-run-id": "@{workflow()?['run']?['name']}"
+            },
+            "body": {
+              "requestId": "@{coalesce(triggerBody()?['requestId'], '')}",
+              "action": "ERROR",
+              "confidence": 0,
+              "target": null,
+              "waitSeconds": 0,
+              "reason": "@{concat('Core analysis flow failed. Trace id: ', workflow()?['run']?['name'])}",
+              "warnings": ["CORE_INVOCATION_FAILED"],
+              "screenshotHash": "@{coalesce(triggerBody()?['screenshotHash'], '')}"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": ""
+  }
+}

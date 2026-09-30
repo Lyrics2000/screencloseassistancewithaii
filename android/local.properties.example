@@ -1,0 +1,11 @@
+# Copy to local.properties (git-ignored). NEVER put an Anthropic API key here: the build fails if one is found.
+sdk.dir=/Users/lyrics/Library/Android/sdk
+
+# Entra ID public-client app registration (not secrets)
+sca.entra.clientId=00000000-0000-0000-0000-000000000000
+sca.entra.tenantId=00000000-0000-0000-0000-000000000000
+# Base64 SHA-1 signature hash printed by: keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore -storepass android | openssl sha1 -binary | openssl base64
+sca.entra.signatureHash=AbCdEfGhIjKlMnOpQrStUvWxYz0=
+
+# OAuth-protected HTTP trigger URL of the "SCA Android HTTP Entry" flow. Must be https and must NOT contain sig=
+sca.flow.endpointUrl=https://example.environment.api.powerplatform.com/powerautomate/automations/direct/workflows/00000000000000000000000000000000/triggers/manual/paths/invoke?api-version=1

@@ -1,0 +1,201 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "SCA Anthropic Claude Vision",
+    "description": "Screen Close Assistant connector for the Anthropic Messages API. Exposes a single operation, AnalyzeScreenshot. The x-api-key credential is stored in the connection, never in flows, prompts or the Android app.",
+    "version": "1.0.0",
+    "contact": { "name": "Screen Close Assistant school project" }
+  },
+  "host": "api.anthropic.com",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "x-api-key"
+    }
+  },
+  "security": [{ "api_key": [] }],
+  "paths": {
+    "/v1/messages": {
+      "post": {
+        "operationId": "AnalyzeScreenshot",
+        "summary": "Analyze screenshot",
+        "description": "Sends one screenshot plus the fixed SCA vision prompt to Claude and returns the Messages API response. Build the body with the Compose_Claude_Request action in the SCA Analyze Core flow.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "anthropic-version",
+            "in": "header",
+            "required": true,
+            "type": "string",
+            "default": "2023-06-01",
+            "x-ms-visibility": "internal",
+            "x-ms-summary": "Anthropic API version"
+          },
+          {
+            "name": "content-type",
+            "in": "header",
+            "required": true,
+            "type": "string",
+            "default": "application/json",
+            "x-ms-visibility": "internal",
+            "x-ms-summary": "Content type"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/MessagesRequest" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Claude Messages API response",
+            "schema": { "$ref": "#/definitions/MessagesResponse" }
+          },
+          "default": {
+            "description": "Anthropic API error",
+            "schema": { "$ref": "#/definitions/ErrorResponse" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "MessagesRequest": {
+      "type": "object",
+      "required": ["model", "max_tokens", "system", "messages", "output_config"],
+      "properties": {
+        "model": {
+          "type": "string",
+          "default": "claude-opus-5-5",
+          "x-ms-summary": "Model",
+          "description": "Claude API model ID. Claude Opus 5.5 is claude-opus-5-5."
+        },
+        "max_tokens": {
+          "type": "integer",
+          "format": "int32",
+          "default": 8000,
+          "x-ms-summary": "Max tokens"
+        },
+        "system": {
+          "type": "string",
+          "x-ms-summary": "System prompt"
+        },
+        "messages": {
+          "type": "array",
+          "x-ms-summary": "Messages",
+          "items": { "$ref": "#/definitions/Message" }
+        },
+        "output_config": { "$ref": "#/definitions/OutputConfig" },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "string",
+              "x-ms-summary": "Opaque user or session id",
+              "description": "Opaque identifier only. Never send names, e-mail addresses or phone numbers."
+            }
+          }
+        }
+      }
+    },
+    "Message": {
+      "type": "object",
+      "required": ["role", "content"],
+      "properties": {
+        "role": { "type": "string", "enum": ["user"] },
+        "content": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ContentBlock" }
+        }
+      }
+    },
+    "ContentBlock": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["image", "text"] },
+        "text": { "type": "string" },
+        "source": { "$ref": "#/definitions/ImageSource" }
+      }
+    },
+    "ImageSource": {
+      "type": "object",
+      "required": ["type", "media_type", "data"],
+      "properties": {
+        "type": { "type": "string", "enum": ["base64"] },
+        "media_type": { "type": "string", "enum": ["image/jpeg", "image/png", "image/webp"] },
+        "data": { "type": "string", "format": "byte" }
+      }
+    },
+    "OutputConfig": {
+      "type": "object",
+      "properties": {
+        "effort": { "type": "string", "enum": ["low", "medium", "high"] },
+        "format": {
+          "type": "object",
+          "required": ["type", "schema"],
+          "properties": {
+            "type": { "type": "string", "enum": ["json_schema"] },
+            "schema": {
+              "type": "object",
+              "x-ms-summary": "JSON schema",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "MessagesResponse": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "role": { "type": "string" },
+        "model": { "type": "string" },
+        "content": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "text": { "type": "string" }
+            }
+          }
+        },
+        "stop_reason": { "type": "string" },
+        "stop_sequence": { "type": "string" },
+        "usage": {
+          "type": "object",
+          "properties": {
+            "input_tokens": { "type": "integer", "format": "int32" },
+            "output_tokens": { "type": "integer", "format": "int32" }
+          }
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "error": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "message": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "x-ms-connector-metadata": [
+    { "propertyName": "Website", "propertyValue": "https://www.anthropic.com" },
+    { "propertyName": "Privacy policy", "propertyValue": "https://www.anthropic.com/legal/privacy" },
+    { "propertyName": "Categories", "propertyValue": "AI" }
+  ]
+}

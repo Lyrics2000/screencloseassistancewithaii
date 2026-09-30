@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Screen Close Assistant</string>
+    <string name="accessibility_service_label">Screen Close Assistant (confirmed taps)</string>
+    <string name="accessibility_service_description">Performs a single tap on a close button only after you press "Tap it" in the Screen Close Assistant overlay. It reads only the name of the app in the foreground and never reads screen content.</string>
+    <string name="notification_channel_name">Screen analysis</string>
+    <string name="notification_channel_description">Shown while Screen Close Assistant can capture your screen.</string>
+    <string name="notification_title">Screen capture active</string>
+    <string name="notification_text">Screenshots are taken only when you press Find close button.</string>
+    <string name="notification_stop">Stop</string>
+</resources>

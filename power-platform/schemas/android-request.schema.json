@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "screenshotBase64": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mimeType": {
+      "type": "string",
+      "enum": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ]
+    },
+    "screenshotWidth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2576
+    },
+    "screenshotHeight": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2576
+    },
+    "screenshotHash": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 16
+    },
+    "foregroundPackage": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "requestedAction": {
+      "type": "string",
+      "enum": [
+        "FIND_AD_CLOSE"
+      ]
+    }
+  },
+  "required": [
+    "requestId",
+    "sessionId",
+    "screenshotBase64",
+    "mimeType",
+    "screenshotWidth",
+    "screenshotHeight",
+    "screenshotHash",
+    "foregroundPackage",
+    "requestedAction"
+  ],
+  "additionalProperties": false
+}

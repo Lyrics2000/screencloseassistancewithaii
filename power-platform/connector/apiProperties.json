@@ -1,0 +1,24 @@
+{
+  "properties": {
+    "connectionParameters": {
+      "api_key": {
+        "type": "securestring",
+        "uiDefinition": {
+          "displayName": "Anthropic API key",
+          "description": "Anthropic Console API key used only by the SCA connector connection. Stored encrypted by Power Platform; never returned to flows or clients.",
+          "tooltip": "Create a dedicated key for this project in the Anthropic Console and set a spend limit.",
+          "constraints": {
+            "tabIndex": 2,
+            "clearText": false,
+            "required": "true"
+          }
+        }
+      }
+    },
+    "iconBrandColor": "#D97757",
+    "capabilities": [],
+    "publisher": "Screen Close Assistant",
+    "stackOwner": "Anthropic",
+    "policyTemplateInstances": []
+  }
+}
